@@ -1,0 +1,500 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Diary</title>
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>📔</text></svg>">
+    <style>
+        :root {
+            --bg: #18181b;
+            --card: #27272a;
+            --input-bg: #3f3f46;
+            --text: #e4e4e7;
+            --accent: #a1a1aa;
+            --border: #3f3f46;
+            --faded: #71717a;
+        }
+
+        * { box-sizing: border-box; }
+
+        body {
+            font-family: 'Roboto', -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+            background-color: var(--bg);
+            color: var(--text);
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            justify-content: center;
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        .container { width: 100%; max-width: 600px; position: relative; }
+
+        .header-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 5px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        h1 {
+            font-weight: 800;
+            font-size: 2.0rem;
+            margin: 0;
+            color: white;
+            letter-spacing: -1px;
+            line-height: 1;
+        }
+
+        .info-block {
+            text-align: right;
+            font-family: 'Courier New', monospace;
+            font-size: 0.85rem;
+            color: var(--faded);
+            line-height: 1.4;
+        }
+
+        .greeting {
+            text-align: left;
+            font-size: 1.1rem;
+            color: var(--accent);
+            margin-top: 15px;
+            margin-bottom: 20px;
+            font-weight: 400;
+        }
+
+        .editor { margin-bottom: 30px; }
+
+        textarea {
+            width: 100%;
+            border: 1px solid var(--border);
+            background: var(--input-bg);
+            outline: none;
+            font-family: inherit;
+            font-size: 1rem;
+            color: white;
+            min-height: 120px;
+            padding: 15px;
+            border-radius: 12px;
+            resize: none;
+            display: block;
+            box-shadow: inset 0 2px 4px rgba(0,0,0,0.2);
+        }
+
+        textarea:focus { border-color: #d4d4d8; }
+
+        .send-btn {
+            background-color: var(--text);
+            color: var(--bg);
+            border: none;
+            width: 100%;
+            padding: 14px;
+            font-size: 1.1rem;
+            font-weight: 700;
+            cursor: pointer;
+            margin-top: 12px;
+            border-radius: 12px;
+            transition: transform 0.1s;
+        }
+
+        .send-btn:active { transform: scale(0.98); }
+
+        .entry-list { display: flex; flex-direction: column; gap: 12px; }
+
+        .entry {
+            background: var(--card);
+            border: 1px solid var(--border);
+            padding: 18px;
+            border-radius: 12px;
+            position: relative;
+        }
+
+        .entry-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 8px;
+        }
+
+        .date-label {
+            font-size: 0.75rem;
+            color: var(--faded);
+            font-family: monospace;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .content {
+            white-space: pre-wrap;
+            line-height: 1.6;
+            color: #d4d4d8;
+        }
+
+        .delete-btn {
+            background: transparent;
+            border: none;
+            cursor: pointer;
+            padding: 0;
+            display: flex;
+            align-items: center;
+            opacity: 0.6;
+            transition: opacity 0.2s;
+        }
+
+        .delete-btn:hover { opacity: 1; }
+
+        .delete-btn svg {
+            stroke: white;
+            width: 18px;
+            height: 18px;
+        }
+
+        .pagination {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            margin-top: 40px;
+            margin-bottom: 40px;
+        }
+        .pagination button {
+            background: var(--card);
+            border: 1px solid var(--border);
+            color: var(--text);
+            padding: 10px 16px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: bold;
+        }
+        .pagination button.active { background: var(--text); color: var(--bg); }
+        .pagination button:disabled { opacity: 0.2; cursor: default; }
+
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            background: rgba(0,0,0,0.7);
+            backdrop-filter: blur(5px);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal-overlay.active { display: flex; }
+
+        .modal-box {
+            background: var(--card);
+            padding: 25px;
+            border-radius: 16px;
+            border: 1px solid var(--border);
+            width: 90%;
+            max-width: 320px;
+            text-align: center;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.5);
+        }
+
+        .modal-text {
+            font-size: 1.25rem;
+            color: white;
+            margin-bottom: 25px;
+            font-weight: 500;
+        }
+
+        .modal-buttons {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+        }
+
+        .modal-btn {
+            flex: 1;
+            padding: 12px;
+            border-radius: 8px;
+            font-size: 1rem;
+            font-weight: bold;
+            cursor: pointer;
+            border: 1px solid var(--text);
+            background: transparent;
+            color: var(--text);
+            transition: all 0.2s;
+        }
+
+        .modal-btn.yes:hover { background: var(--text); color: var(--bg); }
+        .modal-btn.no { border-color: var(--faded); color: var(--faded); }
+        .modal-btn.no:hover { border-color: var(--text); color: var(--text); }
+
+        #pinModal {
+            background: var(--bg);
+            z-index: 9999;
+        }
+
+        #pinInput {
+            background: var(--input-bg);
+            border: 1px solid var(--border);
+            color: white;
+            font-size: 2rem;
+            text-align: center;
+            width: 100%;
+            border-radius: 12px;
+            padding: 15px;
+            letter-spacing: 10px;
+            margin-bottom: 10px;
+            outline: none;
+        }
+
+        #pinInput:focus { border-color: var(--text); }
+
+        .pin-error {
+            color: #ef4444;
+            font-size: 0.9rem;
+            height: 1.2rem;
+            margin-top: 5px;
+        }
+
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <div class="header-row">
+        <h1>Diary</h1>
+        <div class="info-block">
+            <div id="clock">--:--<br>--/--/--</div>
+            <div id="storage">-.-- MB Remaining</div>
+        </div>
+    </div>
+
+    <div id="greeting" class="greeting">Loading...</div>
+
+    <div class="editor">
+        <textarea id="entryText" placeholder="Write something..."></textarea>
+        <button class="send-btn" onclick="saveEntry()">Send</button>
+    </div>
+
+    <div id="list" class="entry-list"></div>
+    <div id="pagination" class="pagination"></div>
+</div>
+
+<div id="confirmModal" class="modal-overlay">
+    <div class="modal-box">
+        <div class="modal-text">Are you sure you want to delete?</div>
+        <div class="modal-buttons">
+            <button class="modal-btn yes" onclick="confirmDeleteAction()">Yes</button>
+            <button class="modal-btn no" onclick="closeModal()">No</button>
+        </div>
+    </div>
+</div>
+
+<div id="pinModal" class="modal-overlay active">
+    <div class="modal-box">
+        <div class="modal-text">Diary<br><span style="font-size: 0.9rem; color: #71717a; font-weight: 400;">Locked</span></div>
+        <input type="tel" id="pinInput" maxlength="4" placeholder="••••" autocomplete="off">
+        <div id="pinMsg" class="pin-error"></div>
+    </div>
+</div>
+
+<script>
+    let entries = [];
+    let currentPage = 1;
+    const itemsPerPage = 10;
+    let pendingDeleteId = null;
+    let socket;
+    const correctPin = "0000";
+    const pinInput = document.getElementById('pinInput');
+    const sessionKey = "diary_session";
+    const sessionDuration = 24 * 60 * 60 * 1000;
+
+    window.onload = () => {
+        if(checkSession()){
+            document.getElementById('pinModal').classList.remove('active');
+            initApp();
+        } else {
+            pinInput.focus();
+        }
+    };
+
+    function checkSession() {
+        const saved = localStorage.getItem(sessionKey);
+        if(saved) {
+            const now = new Date().getTime();
+            if(now - parseInt(saved) < sessionDuration) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    pinInput.addEventListener('input', function() {
+        const val = this.value;
+        if(val.length === 4) {
+            if(val === correctPin) {
+                localStorage.setItem(sessionKey, new Date().getTime().toString());
+                document.getElementById('pinModal').classList.remove('active');
+                initApp();
+            } else {
+                document.getElementById('pinMsg').innerText = "Incorrect PIN";
+                this.value = '';
+                const box = document.querySelector('#pinModal .modal-box');
+                box.style.transform = "translateX(5px)";
+                setTimeout(() => box.style.transform = "translateX(-5px)", 50);
+                setTimeout(() => box.style.transform = "translateX(0)", 100);
+            }
+        } else {
+            document.getElementById('pinMsg').innerText = "";
+        }
+    });
+
+    function initApp() {
+        initWebSocket();
+        updateInterface();
+        setInterval(updateInterface, 1000);
+        loadEntries();
+        updateStorage();
+    }
+
+    function initWebSocket() {
+        socket = new WebSocket('ws://' + window.location.hostname + '/ws');
+        socket.onmessage = function(event) {
+            if (event.data === "update") {
+                loadEntries();
+                updateStorage();
+            }
+        };
+        socket.onclose = function() { setTimeout(initWebSocket, 2000); };
+    }
+
+    function updateInterface() {
+        const now = new Date();
+        const hour = now.getHours();
+
+        let greet = "Good night";
+        if (hour >= 5 && hour < 12) greet = "Good morning";
+        else if (hour >= 12 && hour < 18) greet = "Good afternoon";
+        else if (hour >= 18) greet = "Good evening";
+
+        document.getElementById('greeting').innerText = greet;
+
+        const timeStr = now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true });
+        const dateStr = now.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric' });
+
+        document.getElementById('clock').innerHTML = `${timeStr}<br>${dateStr}`;
+    }
+
+    async function updateStorage() {
+        try {
+            const res = await fetch('/api/storage');
+            const data = await res.json();
+            const freeBytes = data.total - data.used;
+            const freeMB = (freeBytes / 1024 / 1024).toFixed(2);
+            document.getElementById('storage').innerText = `${freeMB} MB Restantes`;
+        } catch(e) {}
+    }
+
+    function getSaveDateString() {
+        const now = new Date();
+        const timeStr = now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true });
+        const dateStr = now.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric' });
+        return `${timeStr} ${dateStr}`;
+    }
+
+    async function loadEntries() {
+        try {
+            const res = await fetch('/api/entries');
+            entries = await res.json();
+            entries.sort((a, b) => b.id - a.id);
+            renderList();
+        } catch (e) { console.error(e); }
+    }
+
+    function renderList() {
+        const listDiv = document.getElementById('list');
+        listDiv.innerHTML = '';
+        const start = (currentPage - 1) * itemsPerPage;
+        const pageItems = entries.slice(start, start + itemsPerPage);
+
+        if(pageItems.length === 0 && entries.length > 0) {
+            currentPage = Math.max(1, currentPage - 1);
+            renderList();
+            return;
+        }
+
+        pageItems.forEach(item => {
+            const div = document.createElement('div');
+            div.className = "entry";
+            div.innerHTML = `
+                <div class="entry-header">
+                    <span class="date-label">${item.date}</span>
+                    <button class="delete-btn" onclick="askDelete(${item.id})">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+                    </button>
+                </div>
+                <div class="content">${item.text}</div>
+            `;
+            listDiv.appendChild(div);
+        });
+        renderPagination();
+    }
+
+    function renderPagination() {
+        const pagDiv = document.getElementById('pagination');
+        pagDiv.innerHTML = '';
+        const totalPages = Math.ceil(entries.length / itemsPerPage);
+        if (totalPages <= 1) return;
+
+        const createBtn = (text, onClick, disabled=false, active=false) => {
+            const btn = document.createElement('button');
+            btn.innerText = text;
+            btn.disabled = disabled;
+            if(active) btn.classList.add('active');
+            btn.onclick = onClick;
+            pagDiv.appendChild(btn);
+        };
+
+        createBtn('<', () => { currentPage--; renderList(); }, currentPage === 1);
+        for(let i=1; i<=totalPages; i++) {
+            createBtn(i, () => { currentPage = i; renderList(); }, false, i === currentPage);
+        }
+        createBtn('>', () => { currentPage++; renderList(); }, currentPage === totalPages);
+    }
+
+    async function saveEntry() {
+        const textarea = document.getElementById('entryText');
+        const text = textarea.value;
+        if(!text.trim()) return;
+
+        const formData = new FormData();
+        formData.append('text', text);
+        formData.append('date', getSaveDateString());
+
+        try {
+            await fetch('/api/add', { method: 'POST', body: formData });
+            textarea.value = '';
+        } catch(e) { alert("Error saving"); }
+    }
+
+    function askDelete(id) {
+        pendingDeleteId = id;
+        document.getElementById('confirmModal').classList.add('active');
+    }
+
+    async function confirmDeleteAction() {
+        if(pendingDeleteId === null) return;
+        const formData = new FormData();
+        formData.append('id', pendingDeleteId);
+        closeModal();
+        await fetch('/api/delete', { method: 'POST', body: formData });
+        pendingDeleteId = null;
+    }
+
+    function closeModal() {
+        document.getElementById('confirmModal').classList.remove('active');
+        pendingDeleteId = null;
+    }
+</script>
+
+</body>
+</html>
